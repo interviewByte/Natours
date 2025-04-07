@@ -42,27 +42,43 @@ exports.login = catchAsync(async (req, res, next) => {
 });
 
 exports.protect = catchAsync(async (req, res, next) => {
-  // 1) Getting token and check of it's there
+  // 1) getting token and check of it's exist there
   let token;
   if (
     req.headers.authorization &&
     req.headers.authorization.startsWith('Bearer')
   ) {
     token = req.headers.authorization.split(' ')[1];
-    console.log(token);
   }
   if (!token) {
     return next(
-      new AppError('You are not logged in! Please login to get access.', 401),
+      new AppError('You are not logged in! Please loged in to get access'),
     );
   }
-  // 2) Varification token
-  const decodeToken = await promisify(jwt.verify)(
-    token,
-    process.env.JWT_SECRET,
-  );
-  console.log('decodeToken:', decodeToken);
+  // 2) verification token
+  const decode = await promisify(jwt.verify)(token, process.env.JWT_SECRET);
+
   // 3) Check if user still exist
-  // 4) Check if user changes password after the token was issued
+  const currentUser = await User.findById(decode.id);
+  if (!currentUser) {
+    return next(
+      new AppError(
+        'The user belonging to this token does no longer exist.',
+        401,
+      ),
+    );
+  }
+  // 4) Check if user changed password
+  if (currentUser.changedPasswordAfter(decode.iat)) {
+    next(
+      new AppError(
+        'User recently changed Password ! Please log in again.',
+        401,
+      ),
+    );
+  }
+  // Put entire user data into req
+  req.user = currentUser;
+  // GRANT ACCESS TO PROTECTED ROUTE
   next();
 });
