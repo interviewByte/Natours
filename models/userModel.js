@@ -33,6 +33,7 @@ const userSchema = new mongoose.Schema({
     message: 'Password are not the same ',
   },
 });
+
 userSchema.pre('save', async function (next) {
   // Only run this function if password was actually modified
   if (!this.isModified('password')) return next();
@@ -42,11 +43,13 @@ userSchema.pre('save', async function (next) {
   this.passwordConfirm = undefined;
   next();
 });
+
 userSchema.methods.correctPassword = async function (
   condidatePassword,
   userPassword,
 ) {
   return await bcrypt.compare(condidatePassword, userPassword);
 };
+
 const User = mongoose.model('User', userSchema);
 module.exports = User;
