@@ -62,6 +62,12 @@ userSchema.pre('save', function (next) {
   this.passwordChangedAt = Date.now() - 1000;
   next();
 });
+// QUERY MIDDLEWARE for set active to inactive user
+userSchema.pre(/^find/, function (next) {
+  // this point to current query
+  this.find({ active: { $ne: false } });
+  next();
+});
 userSchema.methods.correctPassword = async function (
   condidatePassword,
   userPassword,
